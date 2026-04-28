@@ -324,7 +324,7 @@ fileInput.addEventListener('change', () => {
     uploadLabel.style.border = '2px solid var(--ink)';
     clearBtn.disabled = false;
     readBtn.disabled  = !S.geminiKey;
-    setSt('ok', `✓ Image loaded (${Math.round(S.b64.length*.75/1024)} KB).${S.geminiKey ? ' Tap "Read with Gemini vision".' : ' Save a Gemini API key first.'}`;
+    setSt('ok', `✓ Image loaded (${Math.round(S.b64.length*.75/1024)} KB).${S.geminiKey ? ' Tap "Read with Gemini vision".' : ' Save a Gemini API key first.'}`);
   };
   reader.onerror = () => setSt('err', 'Could not read file.');
   reader.readAsDataURL(file);
