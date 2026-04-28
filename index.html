@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>CELLULA · Scanner</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0e1116;--paper:#f4f1ea;--p2:#ebe6da;--p3:#e0dace;
+  --line:#c8c2b8;--red:#c94030;--green:#2a6f4d;--muted:#6b6357;
+  --warn:#b8860b;--blue:#1a5fa8;--sh:0 2px 16px rgba(14,17,22,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{background:var(--paper);color:var(--ink);font-family:'Fraunces',Georgia,serif;min-height:100vh}
+body{padding:0 0 80px;background-image:radial-gradient(circle at 15% 5%,rgba(201,64,48,.05),transparent 40%),radial-gradient(circle at 85% 90%,rgba(42,111,77,.05),transparent 40%)}
+.app{max-width:640px;margin:0 auto;padding:28px 18px}
+
+.hdr{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1.5px solid var(--line);padding-bottom:12px;margin-bottom:24px}
+.brand{font-size:24px;font-weight:700;letter-spacing:-.02em}
+.brand em{font-style:italic;color:var(--red);font-weight:400}
+.ver{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+
+/* ── config card ── */
+.cfg{background:var(--p2);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:22px}
+.cfg-title{font-size:13px;font-weight:600;letter-spacing:-.01em;margin-bottom:14px;color:var(--ink)}
+
+.cfg-row{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.cfg-row:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+
+/* checkbox toggle */
+.toggle-wrap{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.toggle{position:relative;width:40px;height:22px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.slider{position:absolute;inset:0;background:#ccc;border-radius:999px;cursor:pointer;transition:background .2s}
+.slider::before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle input:checked + .slider{background:var(--green)}
+.toggle input:checked + .slider::before{transform:translateX(18px)}
+.toggle-label{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink);white-space:nowrap}
+
+.cfg-body{flex:1}
+.cfg-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:8px}
+.cfg-input-row{display:flex;gap:6px}
+.cfg-input-row input{flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);outline:none;min-width:0}
+.cfg-input-row input:focus{border-color:var(--ink)}
+.cfg-input-row input:disabled{opacity:.4;cursor:not-allowed}
+.save-btn{padding:8px 14px;background:var(--ink);color:var(--paper);border:none;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.save-btn:hover{background:#1e242c}
+.save-btn:disabled{opacity:.4;cursor:not-allowed}
+.cfg-saved{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--green);margin-top:5px;display:none}
+.cfg-warn{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--warn);margin-top:5px}
+
+/* ── pills ── */
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--p2);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot.on{background:var(--green);box-shadow:0 0 0 3px rgba(42,111,77,.15)}
+.dot.warn{background:var(--warn)}
+.dot.off{background:#bbb}
+
+/* ── upload ── */
+.upload-label{display:block;position:relative;border-radius:14px;border:2px dashed var(--line);background:var(--p2);min-height:148px;cursor:pointer;overflow:hidden;margin-bottom:12px;transition:border-color .15s,background .15s}
+.upload-label:hover{border-color:var(--ink);background:var(--p3)}
+.upload-label input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:5;font-size:100px}
+.upload-face{position:relative;z-index:1;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:32px 20px;text-align:center;min-height:148px}
+.uico{font-size:28px;line-height:1}
+.utxt{font-size:14px;color:var(--muted)}.utxt strong{color:var(--ink)}
+.usub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+#previewImg{display:none;width:100%;max-height:260px;object-fit:contain;background:#111;border-radius:12px;margin-bottom:12px}
+
+/* ── camera ── */
+.cam-box{background:var(--ink);border-radius:14px;overflow:hidden;position:relative;aspect-ratio:4/3;margin-bottom:12px}
+#video{width:100%;height:100%;object-fit:cover;display:block}
+.cam-box.idle::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,#1a1f26 0 10px,#111519 10px 20px)}
+.cam-box.idle::after{content:'CAMERA OFFLINE';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.25);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em}
+.reticle{position:absolute;inset:0;pointer-events:none;display:none}
+.cam-box.live .reticle{display:block}
+.rf{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:72%;height:36%;border:1px solid rgba(255,255,255,.2)}
+.rc{position:absolute;width:20px;height:20px;border:2.5px solid var(--red)}
+.rc.tl{top:-1px;left:-1px;border-right:none;border-bottom:none}
+.rc.tr{top:-1px;right:-1px;border-left:none;border-bottom:none}
+.rc.bl{bottom:-1px;left:-1px;border-right:none;border-top:none}
+.rc.br{bottom:-1px;right:-1px;border-left:none;border-top:none}
+.scanline{position:absolute;top:50%;left:50%;width:72%;height:2px;background:linear-gradient(90deg,transparent,var(--red),transparent);animation:scan 2s ease-in-out infinite}
+@keyframes scan{0%,100%{transform:translate(-50%,-150%);opacity:.3}50%{transform:translate(-50%,150%);opacity:1}}
+
+/* ── buttons ── */
+.btn-row{display:flex;gap:8px;margin-bottom:10px}
+.btn{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.07em;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);padding:13px 16px;border-radius:10px;cursor:pointer;flex:1;display:flex;align-items:center;justify-content:center;gap:7px;min-height:48px;transition:background .12s}
+.btn:hover:not(:disabled){background:var(--p2)}
+.btn.red{background:var(--red);color:#fff;border-color:var(--red)}.btn.red:hover:not(:disabled){background:#b03326}
+.btn.dk{background:var(--ink);color:var(--paper);border-color:var(--ink)}.btn.dk:hover:not(:disabled){background:#1e242c}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.spin{width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── status ── */
+.st{padding:11px 14px;border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.5;margin-bottom:10px;display:none}
+.st.show{display:block}
+.st.ok{background:rgba(42,111,77,.08);color:var(--green);border:1px solid rgba(42,111,77,.25)}
+.st.err{background:rgba(201,64,48,.08);color:var(--red);border:1px solid rgba(201,64,48,.25)}
+.st.inf{background:var(--p2);color:var(--muted);border:1px solid var(--line)}
+
+/* ── results ── */
+.res-hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:1.5px solid var(--line);padding-bottom:8px;margin:28px 0 14px;font-size:14px;font-weight:600}
+.cnt{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em}
+.card{background:var(--p2);border-left:3px solid var(--red);border-radius:0 12px 12px 0;padding:14px 16px;margin-bottom:10px;animation:pop .35s cubic-bezier(.34,1.56,.64,1)}
+.card.barcode-only{border-left-color:var(--blue)}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.cname{font-size:16px;font-weight:600;letter-spacing:-.01em;margin-bottom:10px}
+.cname.unk{font-style:italic;color:var(--muted);font-weight:400}
+.fields{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px}
+.fl{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);align-self:center;white-space:nowrap}
+.fv{font-family:'JetBrains Mono',monospace;font-size:12px;word-break:break-all}
+.cfoot{display:flex;gap:10px;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid rgba(0,0,0,.08);font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);flex-wrap:wrap}
+.csrc-vision{color:var(--green)}.csrc-barcode{color:var(--blue)}
+.ch{color:var(--green)}.cl{color:var(--warn)}
+.rmbtn{margin-left:auto;background:transparent;border:1px solid var(--muted);color:var(--ink);padding:3px 8px;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;cursor:pointer;flex:0 0 auto}
+.rmbtn:hover{background:var(--ink);color:var(--paper)}
+.empty{text-align:center;padding:36px;color:var(--muted);font-style:italic;font-size:15px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header class="hdr">
+  <div class="brand">CELL<em>ULA</em></div>
+  <div class="ver">v0.5 · scanner</div>
+</header>
+
+<!-- ── Config ── -->
+<div class="cfg">
+  <div class="cfg-title">Features & API</div>
+
+  <!-- Gemini vision -->
+  <div class="cfg-row">
+    <div class="toggle-wrap">
+      <label class="toggle">
+        <input type="checkbox" id="chkVision" onchange="onToggle()">
+        <span class="slider"></span>
+      </label>
+      <span class="toggle-label">Vision</span>
+    </div>
+    <div class="cfg-body">
+      <div class="cfg-desc">Claude reads the label — extracts product name, catalog #, lot, expiry and more from any photo.</div>
+      <div class="cfg-input-row">
+        <input type="password" id="geminiKey" placeholder="Gemini API key (AIza…)" disabled autocomplete="off" spellcheck="false"/>
+        <button class="save-btn" id="saveGemini" onclick="saveGeminiKey()" disabled>Save</button>
+      </div>
+      <div class="cfg-saved" id="geminiSaved">✓ Key saved</div>
+    </div>
+  </div>
+
+  <!-- Native barcode -->
+  <div class="cfg-row">
+    <div class="toggle-wrap">
+      <label class="toggle">
+        <input type="checkbox" id="chkBarcode" onchange="onToggle()">
+        <span class="slider"></span>
+      </label>
+      <span class="toggle-label">Barcode</span>
+    </div>
+    <div class="cfg-body">
+      <div class="cfg-desc">Uses the browser's native barcode scanner (Apple Vision on Safari iOS/macOS). No API key needed — just open this file in Safari.</div>
+      <div class="cfg-warn" id="barcodeWarn" style="display:none">⚠ BarcodeDetector not available in this browser. Open in Safari.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Status pills ── -->
+<div class="pills">
+  <div class="pill" id="pillVision"><span class="dot off"></span>vision · off</div>
+  <div class="pill" id="pillBarcode"><span class="dot off"></span>barcode · off</div>
+</div>
+
+<!-- ── Upload zone ── -->
+<label class="upload-label" id="uploadLabel">
+  <input type="file" id="fileInput" accept="image/*"/>
+  <div class="upload-face" id="uploadFace">
+    <div class="uico">⬆</div>
+    <div class="utxt">Tap to <strong>choose or take a photo</strong></div>
+    <div class="usub">jpeg · png · webp · heic</div>
+  </div>
+</label>
+<img id="previewImg" alt="label preview"/>
+
+<!-- ── Camera ── -->
+<div class="cam-box idle" id="camBox" style="display:none">
+  <video id="video" playsinline muted autoplay></video>
+  <div class="reticle">
+    <div class="rf">
+      <div class="rc tl"></div><div class="rc tr"></div>
+      <div class="rc bl"></div><div class="rc br"></div>
+    </div>
+    <div class="scanline"></div>
+  </div>
+</div>
+
+<!-- ── Buttons ── -->
+<div class="btn-row" id="visionBtns" style="display:none">
+  <button class="btn red" id="readBtn" disabled><span id="readLabel">Read with Gemini vision</span></button>
+  <button class="btn" id="clearBtn" disabled>Clear</button>
+</div>
+<div class="btn-row" id="cameraBtns" style="display:none">
+  <button class="btn dk" id="startBtn" onclick="startCam()">Start camera</button>
+  <button class="btn" id="stopBtn" onclick="stopCam()" disabled>Stop</button>
+</div>
+
+<div class="st" id="mainSt"></div>
+
+<!-- ── Results ── -->
+<div class="res-hdr">
+  <span>Identified reagents</span>
+  <span class="cnt" id="cnt">0</span>
+</div>
+<div id="cards"><div class="empty">Enable a feature above to get started.</div></div>
+
+</div>
+
+<script>
+'use strict';
+const S = {
+  geminiKey: null,
+  nativeOk: false,
+  detector: null,
+  b64: null, mime: null,
+  results: [],
+  stream: null, scanning: false, rafId: null,
+  recent: new Map()
+};
+
+/* ── Native barcode check ── */
+(async () => {
+  if ('BarcodeDetector' in window) {
+    try {
+      const fmts = await BarcodeDetector.getSupportedFormats();
+      if (fmts.length) {
+        S.detector = new BarcodeDetector({
+          formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','code_93','itf','qr_code','data_matrix'].filter(f => fmts.includes(f))
+        });
+        S.nativeOk = true;
+        return;
+      }
+    } catch(e) {}
+  }
+  document.getElementById('barcodeWarn').style.display = 'block';
+})();
+
+/* ── Key save ── */
+function onToggle() {
+  const wantVision  = document.getElementById('chkVision').checked;
+  const wantBarcode = document.getElementById('chkBarcode').checked;
+
+  // enable/disable key input
+  document.getElementById('geminiKey').disabled  = !wantVision;
+  document.getElementById('saveGemini').disabled = !wantVision;
+
+  // show/hide UI sections
+  document.getElementById('uploadLabel').style.display = (wantVision) ? 'block' : 'none';
+  document.getElementById('previewImg').style.display  = (wantVision && S.b64) ? 'block' : 'none';
+  document.getElementById('visionBtns').style.display  = wantVision  ? 'flex'  : 'none';
+  document.getElementById('camBox').style.display      = wantBarcode ? 'block' : 'none';
+  document.getElementById('cameraBtns').style.display  = wantBarcode ? 'flex'  : 'none';
+
+  if (!wantBarcode && S.scanning) stopCam();
+
+  updatePills();
+}
+
+function saveGeminiKey() {
+  const v = document.getElementById('geminiKey').value.trim();
+  if (!v) { setSt('err', 'Enter your Gemini API key first.'); return; }
+  S.geminiKey = v;
+  document.getElementById('geminiSaved').style.display = 'block';
+  document.getElementById('readBtn').disabled = !S.b64;
+  updatePills();
+}
+
+function updatePills() {
+  const wantVision  = document.getElementById('chkVision').checked;
+  const wantBarcode = document.getElementById('chkBarcode').checked;
+
+  const vOk = wantVision && S.geminiKey;
+  setPill('pillVision',
+    vOk ? 'on' : wantVision ? 'warn' : 'off',
+    vOk ? 'gemini vision · ready' : wantVision ? 'vision · needs key' : 'vision · off'
+  );
+
+  const bOk = wantBarcode && S.nativeOk;
+  setPill('pillBarcode',
+    bOk ? 'on' : wantBarcode && !S.nativeOk ? 'warn' : 'off',
+    bOk ? 'barcode · ready' : wantBarcode && !S.nativeOk ? 'barcode · Safari only' : 'barcode · off'
+  );
+}
+
+function setPill(id, cls, txt) {
+  document.getElementById(id).innerHTML = `<span class="dot ${cls}"></span>${txt}`;
+}
+
+/* ── File upload ── */
+const fileInput   = document.getElementById('fileInput');
+const preview     = document.getElementById('previewImg');
+const uploadFace  = document.getElementById('uploadFace');
+const uploadLabel = document.getElementById('uploadLabel');
+const readBtn     = document.getElementById('readBtn');
+const clearBtn    = document.getElementById('clearBtn');
+
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files && fileInput.files[0];
+  if (!file) { setSt('err', 'No file selected.'); return; }
+  setSt('inf', `Loading ${file.name} (${Math.round(file.size/1024)} KB)…`);
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const url  = ev.target.result;
+    S.b64  = url.split(',')[1];
+    S.mime = (file.type && file.type !== '') ? file.type : 'image/jpeg';
+    if (S.mime === 'image/heic' || S.mime === 'image/heif') S.mime = 'image/jpeg';
+
+    preview.src = url;
+    preview.style.display = 'block';
+    uploadFace.style.display = 'none';
+    uploadLabel.style.border = '2px solid var(--ink)';
+    clearBtn.disabled = false;
+    readBtn.disabled  = !S.geminiKey;
+    setSt('ok', `✓ Image loaded (${Math.round(S.b64.length*.75/1024)} KB).${S.geminiKey ? ' Tap "Read with Gemini vision".' : ' Save a Gemini API key first.'}`;
+  };
+  reader.onerror = () => setSt('err', 'Could not read file.');
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  fileInput.value = '';
+  S.b64 = S.mime = null;
+  preview.src = '';
+  preview.style.display = 'none';
+  uploadFace.style.display = 'flex';
+  uploadLabel.style.border = '';
+  readBtn.disabled = clearBtn.disabled = true;
+  setSt('inf', '', false);
+});
+
+/* ── Gemini vision ── */
+readBtn.addEventListener('click', async () => {
+  if (!S.b64 || !S.geminiKey) return;
+  readBtn.disabled = clearBtn.disabled = true;
+  document.getElementById('readLabel').innerHTML = '<span class="spin"></span> Reading…';
+  setSt('inf', `Sending to Gemini vision…`);
+
+  const prompt = `You are a lab inventory assistant. Look at this reagent label and extract every visible field. Return ONLY a valid JSON object — no markdown, no code fences, nothing else.
+
+{"product_name":"string or null","vendor":"string or null","catalog_number":"string or null","lot_number":"string or null","barcode_digits":"string or null (the digits printed under any barcode if visible)","expiry_date":"string or null (YYYY-MM-DD)","manufacture_date":"string or null","size_quantity":"string or null","storage":"string or null","confidence":"high|medium|low","notes":"string or null"}
+
+Use null for fields not visible. Do not guess.`;
+
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${S.geminiKey}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: S.mime, data: S.b64 } },
+            { text: prompt }
+          ]
+        }]
+      })
+    });
+
+    if (!res.ok) { const t = await res.text(); throw new Error(`API ${res.status}: ${t.slice(0,200)}`); }
+    const data = await res.json();
+
+    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!raw) throw new Error('Empty response from Gemini');
+
+    let cleaned = raw.trim().replace(/^```json\s*/i,'').replace(/```\s*$/,'').trim();
+    let obj;
+    try { obj = JSON.parse(cleaned); }
+    catch { const m = cleaned.match(/\{[\s\S]*\}/); if (m) obj = JSON.parse(m[0]); else throw new Error('Could not parse JSON from response'); }
+
+    addResult({ ...obj, _src: 'gemini vision', _ts: new Date() });
+    setSt('ok', `✓ Done — confidence: ${obj.confidence || 'unknown'}`);
+  } catch(err) {
+    setSt('err', 'Error: ' + err.message);
+  } finally {
+    readBtn.disabled = clearBtn.disabled = false;
+    document.getElementById('readLabel').textContent = 'Read with Gemini vision';
+  }
+});
+
+/* ── Camera / Barcode ── */
+async function startCam() {
+  if (!S.nativeOk) { setSt('err', 'BarcodeDetector not available. Open this file in Safari on iOS or macOS.'); return; }
+  try {
+    S.stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 } }, audio: false
+    });
+    const vid = document.getElementById('video');
+    vid.srcObject = S.stream;
+    await vid.play();
+    document.getElementById('camBox').className = 'cam-box live';
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('stopBtn').disabled  = false;
+    S.scanning = true;
+    scanLoop(vid);
+    setSt('ok', 'Camera live — point at the barcode.');
+  } catch(e) {
+    setSt('err', 'Camera error: ' + e.message);
+  }
+}
+
+function stopCam() {
+  S.scanning = false;
+  if (S.rafId) clearTimeout(S.rafId);
+  if (S.stream) { S.stream.getTracks().forEach(t => t.stop()); S.stream = null; }
+  document.getElementById('video').srcObject = null;
+  document.getElementById('camBox').className = 'cam-box idle';
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('stopBtn').disabled  = true;
+}
+
+async function scanLoop(vid) {
+  if (!S.scanning) return;
+  S.frameCount = (S.frameCount || 0) + 1;
+  setSt('inf', 'Scanning frame ' + S.frameCount + ' — fill the frame with the barcode.');
+
+  try {
+    if (vid.readyState >= 2 && vid.videoWidth > 0) {
+      // Canvas grab is more reliable than passing video element directly to detect()
+      if (!S.canvas) { S.canvas = document.createElement('canvas'); S.ctx = S.canvas.getContext('2d'); }
+      S.canvas.width  = vid.videoWidth;
+      S.canvas.height = vid.videoHeight;
+      S.ctx.drawImage(vid, 0, 0);
+
+      let codes = [];
+      try { codes = await S.detector.detect(S.canvas); } catch(e) {}
+      if (!codes.length) { try { codes = await S.detector.detect(vid); } catch(e) {} }
+
+      for (const c of codes) {
+        const now = Date.now();
+        if (!S.recent.has(c.rawValue) || now - S.recent.get(c.rawValue) > 3000) {
+          S.recent.set(c.rawValue, now);
+          addResult({ _src: 'barcode', _ts: new Date(), product_name: null, vendor: null,
+            catalog_number: null, lot_number: null, barcode_digits: c.rawValue,
+            expiry_date: null, manufacture_date: null, size_quantity: null, storage: null,
+            confidence: 'high', notes: 'Format: ' + c.format });
+          if (navigator.vibrate) navigator.vibrate(60);
+          setSt('ok', 'Barcode detected! Value: ' + c.rawValue.slice(0,30));
+        }
+      }
+    } else {
+      setSt('inf', 'Waiting for camera… readyState=' + vid.readyState + ' w=' + vid.videoWidth);
+    }
+  } catch(e) {
+    setSt('inf', 'Frame ' + S.frameCount + ' error: ' + e.message);
+  }
+
+  // 400ms interval — avoids WebKit detect() queue buildup
+  S.rafId = setTimeout(() => scanLoop(vid), 400);
+}
+
+/* ── Results ── */
+function addResult(r) {
+  S.results.unshift(r);
+  renderCards();
+}
+
+function renderCards() {
+  const cards = document.getElementById('cards');
+  document.getElementById('cnt').textContent = S.results.length + ' identified';
+  if (!S.results.length) { cards.innerHTML = '<div class="empty">Nothing identified yet.</div>'; return; }
+
+  cards.innerHTML = S.results.map((r, i) => {
+    const isBarcode = r._src === 'barcode';
+    const rows = [
+      ['vendor', r.vendor], ['cat #', r.catalog_number], ['lot', r.lot_number],
+      ['barcode', r.barcode_digits], ['size', r.size_quantity],
+      ['expiry', r.expiry_date], ['mfg', r.manufacture_date], ['storage', r.storage]
+    ].filter(([,v]) => v != null && v !== '');
+
+    return `<div class="card${isBarcode ? ' barcode-only' : ''}">
+      <div class="cname${r.product_name ? '' : ' unk'}">${esc(r.product_name || (isBarcode ? 'Barcode scanned' : 'Unknown product'))}</div>
+      ${rows.length ? '<div class="fields">' + rows.map(([k,v]) => `<div class="fl">${esc(k)}</div><div class="fv">${esc(v)}</div>`).join('') + '</div>' : ''}
+      ${r.notes ? `<div style="margin-top:8px;font-size:11px;color:var(--muted);font-style:italic">${esc(r.notes)}</div>` : ''}
+      <div class="cfoot">
+        <span class="${isBarcode ? 'csrc-barcode' : 'csrc-vision'}">${esc(r._src)}</span>
+        <span class="${r.confidence==='high'?'ch':r.confidence==='low'?'cl':''}">${esc(r.confidence||'')}</span>
+        <span>${r._ts.toLocaleTimeString()}</span>
+        <button class="rmbtn" onclick="del(${i})">remove</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.del = i => { S.results.splice(i, 1); renderCards(); };
+
+function setSt(kind, msg, show=true) {
+  const el = document.getElementById('mainSt');
+  el.className = `st${show?' show':''} ${kind}`;
+  el.textContent = msg;
+}
+
+function esc(s) {
+  return String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Init — hide dynamic sections until toggled
+onToggle();
+</script>
+</body>
+</html>
